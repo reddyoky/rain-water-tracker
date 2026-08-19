@@ -1,0 +1,7 @@
+# RAIN WaterTracker — Railway config
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/Auth/Login"
+restartPolicyType = "on_failure"

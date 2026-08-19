@@ -1,0 +1,21 @@
+## Ignore build and user-specific files
+obj/
+bin/
+.vs/
+*.user
+*.suo
+
+## SQLite database (don't commit to git)
+*.db
+*.db-shm
+*.db-wal
+
+## Uploaded profile photos (don't commit — use Railway volumes)
+wwwroot/uploads/
+
+## Logs
+logs/
+*.log
+
+## Secrets
+appsettings.Production.json

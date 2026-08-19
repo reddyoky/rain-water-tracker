@@ -1,0 +1,143 @@
+@using WaterTracker.Models
+@model AppUser
+@{
+    ViewBag.Title = "Profil Ayarları";
+}
+
+<div class="profile-page">
+    <div class="profile-header">
+        <a href="/" class="back-btn">← Dashboard'a Dön</a>
+        <h1 class="profile-title">⚙️ Profil Ayarları</h1>
+    </div>
+
+    <div class="profile-grid">
+
+        <!-- ── Fotoğraf Kartı ─────────────────────────── -->
+        <div class="profile-card">
+            <h2 class="card-section-title">📸 Profil Fotoğrafı</h2>
+
+            <!-- Mevcut Fotoğraf -->
+            <div class="avatar-preview-wrap">
+                @if (!string.IsNullOrEmpty(Model.ProfilePhotoPath))
+                {
+                    <img src="@Model.ProfilePhotoPath" alt="Profil" class="avatar-preview" id="avatarPreview" />
+                }
+                else
+                {
+                    <div class="avatar-placeholder" id="avatarPreview">
+                        <span>@Model.DisplayName[0]</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Başarı / Hata -->
+            @if (TempData["PhotoSuccess"] != null)
+            {
+                <div class="alert alert-success">@TempData["PhotoSuccess"]</div>
+            }
+            @if (TempData["PhotoError"] != null)
+            {
+                <div class="alert alert-error">@TempData["PhotoError"]</div>
+            }
+
+            <!-- Yükleme Formu -->
+            <form method="post" action="/Profile/UploadPhoto" enctype="multipart/form-data" class="upload-form">
+                <label class="file-drop-zone" id="dropZone">
+                    <span class="drop-icon">☁️</span>
+                    <span class="drop-text">Fotoğraf seç veya sürükle bırak</span>
+                    <span class="drop-hint">JPG, PNG, WEBP · Max 5MB</span>
+                    <input type="file" name="photo" id="photoInput" accept="image/*" class="file-input" />
+                </label>
+                <button type="submit" class="btn-primary">Fotoğrafı Yükle</button>
+            </form>
+        </div>
+
+        <!-- ── Şifre Kartı ────────────────────────────── -->
+        <div class="profile-card">
+            <h2 class="card-section-title">🔒 Şifre Değiştir</h2>
+
+            @if (TempData["PwSuccess"] != null)
+            {
+                <div class="alert alert-success">@TempData["PwSuccess"]</div>
+            }
+            @if (TempData["PwError"] != null)
+            {
+                <div class="alert alert-error">@TempData["PwError"]</div>
+            }
+
+            <form method="post" action="/Profile/ChangePassword" class="pw-form">
+                <div class="form-field">
+                    <label>Mevcut Şifre</label>
+                    <input type="password" name="currentPassword" placeholder="••••••••" required />
+                </div>
+                <div class="form-field">
+                    <label>Yeni Şifre</label>
+                    <input type="password" name="newPassword" placeholder="En az 6 karakter" minlength="6" required />
+                </div>
+                <div class="form-field">
+                    <label>Yeni Şifre (Tekrar)</label>
+                    <input type="password" name="confirmPassword" placeholder="••••••••" minlength="6" required />
+                </div>
+                <button type="submit" class="btn-primary">Şifreyi Güncelle</button>
+            </form>
+        </div>
+
+        <!-- ── Kullanıcı Bilgileri ───────────────────── -->
+        <div class="profile-card profile-card--info">
+            <h2 class="card-section-title">👤 Hesap Bilgileri</h2>
+            <div class="info-row">
+                <span class="info-label">Kullanıcı Adı</span>
+                <span class="info-value">@@Model.Username</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Görünen Ad</span>
+                <span class="info-value">@Model.DisplayName</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Günlük Hedef</span>
+                <span class="info-value">@Model.DailyGoalMl ml</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// Fotoğraf seçilince önizleme göster
+const input   = document.getElementById('photoInput');
+const preview = document.getElementById('avatarPreview');
+const dropZone = document.getElementById('dropZone');
+
+input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        if (preview.tagName === 'IMG') {
+            preview.src = ev.target.result;
+        } else {
+            const img = document.createElement('img');
+            img.src = ev.target.result;
+            img.className = 'avatar-preview';
+            img.id = 'avatarPreview';
+            preview.replaceWith(img);
+        }
+    };
+    reader.readAsDataURL(file);
+    dropZone.querySelector('.drop-text').textContent = file.name;
+});
+
+// Drag & Drop
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+}

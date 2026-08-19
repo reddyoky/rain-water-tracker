@@ -1,0 +1,132 @@
+@using WaterTracker.Models
+@{
+    ViewBag.Title = "Dashboard";
+    var users      = (List<AppUser>)ViewBag.Users;
+    var glassTypes = (List<GlassType>)ViewBag.GlassTypes;
+    var timeline   = (List<WaterLog>)ViewBag.Timeline;
+    var loggedUser = User.FindFirst("DisplayName")?.Value ?? "Kullanıcı";
+    var loggedId   = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+    // Giriş yapan kullanıcının profil fotoğrafı
+    var me = users.FirstOrDefault(u => u.Id == loggedId);
+}
+
+<div class="dashboard">
+    <!-- ── Üst Bar ─────────────────────────────────────── -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <span class="topbar-logo">🌧️</span>
+            <span class="topbar-title">RAIN</span>
+        </div>
+        <div class="topbar-right">
+            <!-- Profil Avatarı -->
+            <a href="/Profile" class="topbar-avatar" title="Profil Ayarları">
+                @if (me?.ProfilePhotoPath != null)
+                {
+                    <img src="@me.ProfilePhotoPath" alt="Profil" class="topbar-avatar-img" />
+                }
+                else
+                {
+                    <div class="topbar-avatar-placeholder">@loggedUser[0]</div>
+                }
+            </a>
+            <span class="topbar-user">@loggedUser</span>
+            <a href="/Auth/Logout" class="logout-btn">Çıkış</a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- ── Kullanıcı Kartları ──────────────────────── -->
+        <section class="users-section">
+            @foreach (var user in users)
+            {
+                var total   = user.WaterLogs.Sum(l => l.AmountMl);
+                var pct     = user.DailyGoalMl > 0 ? (int)Math.Min(100, total * 100.0 / user.DailyGoalMl) : 0;
+                var isMe    = user.Id == loggedId;
+                var cardCls = isMe ? "user-card user-card--mine" : "user-card";
+
+                <div class="@cardCls" id="card-@user.Id">
+                    <div class="card-header">
+                        <div class="card-user-info">
+                            <!-- Profil fotoğrafı (küçük) -->
+                            @if (user.ProfilePhotoPath != null)
+                            {
+                                <img src="@user.ProfilePhotoPath" alt="@user.DisplayName" class="card-avatar" />
+                            }
+                            else
+                            {
+                                <div class="card-avatar-placeholder">@user.DisplayName[0]</div>
+                            }
+                            <h2 class="card-name">@user.DisplayName</h2>
+                        </div>
+                        @if (isMe) { <span class="card-badge">Sen 🫵</span> }
+                    </div>
+
+                    <!-- Su dolum animasyonu -->
+                    <div class="water-bottle">
+                        <div class="water-fill" id="fill-@user.Id" style="height: @pct%">
+                            <div class="water-wave-inner"></div>
+                        </div>
+                        <div class="bottle-pct" id="pct-@user.Id">@pct%</div>
+                    </div>
+
+                    <div class="card-stats">
+                        <span id="total-@user.Id" class="stat-total">@total ml</span>
+                        <span class="stat-sep">/</span>
+                        <span class="stat-goal">@user.DailyGoalMl ml</span>
+                    </div>
+
+                    @if (isMe)
+                    {
+                        <div class="glass-buttons">
+                            @foreach (var glass in glassTypes)
+                            {
+                                <button class="glass-btn" onclick="drinkWater(@glass.CapacityMl)"
+                                        title="@glass.Name — @glass.CapacityMl ml">
+                                    <span class="glass-emoji">@glass.Emoji</span>
+                                    <span class="glass-label">@glass.CapacityMl ml</span>
+                                    <span class="glass-name">@glass.Name</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="other-user-note">👀 Sadece kendi suyunu ekleyebilirsin</p>
+                    }
+                </div>
+            }
+        </section>
+
+        <!-- ── Timeline ───────────────────────────────── -->
+        <section class="timeline-section">
+            <h3 class="timeline-title">⏱ Canlı Akış — Bugün</h3>
+            <div class="timeline" id="timeline">
+                @if (!timeline.Any())
+                {
+                    <div class="timeline-empty">Henüz su içilmedi 💤 İlk damla senden gelsin!</div>
+                }
+                @foreach (var log in timeline)
+                {
+                    var diff = (int)(DateTime.Now - log.DrankAt).TotalMinutes;
+                    var when = diff == 0 ? "az önce"
+                              : diff < 60 ? $"{diff} dakika önce"
+                              : $"{(int)(diff / 60)} saat önce";
+                    <div class="timeline-item">
+                        <span class="tl-dot"></span>
+                        <div class="tl-content">
+                            <strong>@log.AppUser.DisplayName</strong>
+                            <span class="tl-amount">@log.AmountMl ml içti 💧</span>
+                            <span class="tl-time">@when</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+@section Scripts {
+    <script>const MY_USER_ID = @loggedId;</script>
+}
