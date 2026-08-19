@@ -6,21 +6,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-// ── Veritabanı: Lokal → SQLite | Render/Railway → PostgreSQL ──────────────
+// ── Veritabanı: Lokal → SQLite | Cloud → PostgreSQL ──────────────
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-
 if (!string.IsNullOrEmpty(databaseUrl))
 {
-    // Production: URI formatını Npgsql key=value formatına çevir
-    // Örn: postgresql://user:pass@host/db?sslmode=require
-    //  →   Host=host;Database=db;Username=user;Password=pass;SSL Mode=Require
     var npgsqlConn = ConvertPostgresUrlToNpgsql(databaseUrl);
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(npgsqlConn));
 }
 else
 {
-    // Lokal: SQLite
     var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlite(connStr));
@@ -39,17 +34,21 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://*:{port}");
-
 var app = builder.Build();
 
 // Veritabanını oluştur + seed
-using (var scope = app.Services.CreateScope())
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-    DbInitializer.Initialize(db);
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.Migrate();
+        DbInitializer.Initialize(db);
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine("DB Migration Error: " + ex.Message);
 }
 
 // Profil fotoğrafı klasörünü garanti et
@@ -57,11 +56,8 @@ var uploadsPath = Path.Combine(app.Environment.WebRootPath, "uploads");
 if (!Directory.Exists(uploadsPath))
     Directory.CreateDirectory(uploadsPath);
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
+// Hata ayıklama için her zaman detaylı hata sayfasını göster
+app.UseDeveloperExceptionPage();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
