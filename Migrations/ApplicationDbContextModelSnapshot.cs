@@ -3,140 +3,92 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WaterTracker.Data;
 
 #nullable disable
 
-namespace WaterTracker.Migrations
+namespace WaterTracker.Migrations;
+
+[DbContext(typeof(ApplicationDbContext))]
+partial class ApplicationDbContextModelSnapshot : ModelSnapshot
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    protected override void BuildModel(ModelBuilder modelBuilder)
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
-        {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.8");
+        modelBuilder
+            .HasAnnotation("ProductVersion", "8.0.8")
+            .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            modelBuilder.Entity("WaterTracker.Models.AppUser", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+        NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-                    b.Property<int>("DailyGoalMl")
-                        .HasColumnType("INTEGER");
+        modelBuilder.Entity("WaterTracker.Models.AppUser", b =>
+        {
+            b.Property<int>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("integer");
+            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
+            b.Property<int>("DailyGoalMl").HasColumnType("integer");
+            b.Property<string>("DisplayName").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("Password").IsRequired().HasColumnType("text");
+            b.Property<string>("ProfilePhotoPath").HasColumnType("text");
+            b.Property<string>("Username").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
 
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+            b.HasKey("Id");
+            b.ToTable("Users");
+        });
 
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("WaterTracker.Models.GlassType", b =>
+        {
+            b.Property<int>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("integer");
+            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.HasKey("Id");
+            b.Property<int>("CapacityMl").HasColumnType("integer");
+            b.Property<string>("Emoji").IsRequired().HasMaxLength(10).HasColumnType("character varying(10)");
+            b.Property<string>("Name").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
 
-                    b.ToTable("Users");
-                });
+            b.HasKey("Id");
+            b.ToTable("GlassTypes");
+            b.HasData(
+                new { Id = 1, Name = "Küçük Bardak", CapacityMl = 200, Emoji = "🥛" },
+                new { Id = 2, Name = "Büyük Bardak", CapacityMl = 300, Emoji = "🥤" },
+                new { Id = 3, Name = "Şişe",         CapacityMl = 500, Emoji = "💧" },
+                new { Id = 4, Name = "Büyük Şişe",   CapacityMl = 750, Emoji = "🍶" });
+        });
 
-            modelBuilder.Entity("WaterTracker.Models.GlassType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+        modelBuilder.Entity("WaterTracker.Models.WaterLog", b =>
+        {
+            b.Property<int>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("integer");
+            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CapacityMl")
-                        .HasColumnType("INTEGER");
+            b.Property<int>("AmountMl").HasColumnType("integer");
+            b.Property<DateTime>("DrankAt").HasColumnType("timestamp with time zone");
+            b.Property<int>("UserId").HasColumnType("integer");
 
-                    b.Property<string>("Emoji")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
+            b.HasKey("Id");
+            b.HasIndex("UserId");
+            b.ToTable("WaterLogs");
+        });
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("WaterTracker.Models.WaterLog", b =>
+        {
+            b.HasOne("WaterTracker.Models.AppUser", "AppUser")
+                .WithMany("WaterLogs")
+                .HasForeignKey("UserId")
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+            b.Navigation("AppUser");
+        });
 
-                    b.HasKey("Id");
-
-                    b.ToTable("GlassTypes");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CapacityMl = 200,
-                            Emoji = "🥛",
-                            Name = "Küçük Bardak"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CapacityMl = 300,
-                            Emoji = "🥤",
-                            Name = "Büyük Bardak"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CapacityMl = 500,
-                            Emoji = "💧",
-                            Name = "Şişe"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CapacityMl = 750,
-                            Emoji = "🍶",
-                            Name = "Büyük Şişe"
-                        });
-                });
-
-            modelBuilder.Entity("WaterTracker.Models.WaterLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AmountMl")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("DrankAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("WaterLogs");
-                });
-
-            modelBuilder.Entity("WaterTracker.Models.WaterLog", b =>
-                {
-                    b.HasOne("WaterTracker.Models.AppUser", "AppUser")
-                        .WithMany("WaterLogs")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AppUser");
-                });
-
-            modelBuilder.Entity("WaterTracker.Models.AppUser", b =>
-                {
-                    b.Navigation("WaterLogs");
-                });
+        modelBuilder.Entity("WaterTracker.Models.AppUser", b =>
+        {
+            b.Navigation("WaterLogs");
+        });
 #pragma warning restore 612, 618
-        }
     }
 }
